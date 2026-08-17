@@ -3,14 +3,16 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import sqlite3
 
 description = """A discord bot to count down the days until an event"""
 
 intents = discord.Intents.default()
 intents.message_content = True
-load_dotenv()
-
 bot = commands.Bot(command_prefix='/', description=description, intents=intents)
+
+con = sqlite3.connect("event_database.db")
+cur = con.cursor()
 
 @bot.event
 async def on_ready():
@@ -25,4 +27,5 @@ async def schedule(ctx, name: str, month: int, day: int, year: int):
 async def countdown(ctx, name: str):
     await ctx.send(f"Countdown for event '{name}' is not implemented yet")
 
+load_dotenv()
 bot.run(os.getenv("DISCORD_TOKEN"))
