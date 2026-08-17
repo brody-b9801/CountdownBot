@@ -20,11 +20,13 @@ async def on_ready():
 
 @bot.command()
 async def schedule(ctx, name: str, month: int, day: int, year: int):
-    date = f"{month}/{day}/{year}"    
+    sender = ctx.author
     guild_id = ctx.guild.id
+
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS events (
             guild TEXT PRIMARY KEY NOT NULL UNIQUE,
+            sender TEXT NOT NULL,
             eventname TEXT NOT NULL,
             month INTEGER,
             day INTEGER,
@@ -32,17 +34,20 @@ async def schedule(ctx, name: str, month: int, day: int, year: int):
         )
     """)
 
-    date_info = (guild_id, name, month, day, year)
+    cur.execute("SELECT * FROM events WHERE guild = ? AND sender = ? AND eventname = ?", (guild_id, sender, name))
+    
+    date_info = (guild_id, sender, name, month, day, year)
 
-    cur.execute(f"INSERT INTO events (guild, eventname, month, day, year) VALUES (?, ?, ?, ?, ?)", date_info)
+    cur.execute("INSERT INTO events (guild, sender, eventname, month, day, year) VALUES (?, ?, ?, ?, ?, ?)", date_info)
+    date = f"{month}/{day}/{year}"    
     await ctx.send(f"Event '{name}' created for {date}")
 
 @bot.command()
 async def countdown(ctx, name: str):
-    #retreive event from guild the command was sent from, compute days until the date using helper method
     await ctx.send(f"Countdown for event '{name}' is not implemented yet")
 
 async def delete(ctx, name: str):
+    
     await ctx.send("deleted")
 
 load_dotenv()
