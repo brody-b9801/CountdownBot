@@ -4,6 +4,7 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import sqlite3
+import datetime
 
 description = """A discord bot to count down the days until an event"""
 
@@ -17,14 +18,15 @@ class Bot(commands.Bot):
     async def setup_hook(self) -> None:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild TEXT KEY NOT NULL,
-                sender TEXT NOT NULL,
-                eventname TEXT NOT NULL,
-                month INTEGER,
-                day INTEGER,
-                year INTEGER
-            )
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id   INTEGER NOT NULL,
+                user_id    INTEGER NOT NULL,
+                name       TEXT NOT NULL,
+                event_ts   INTEGER NOT NULL,
+                created_ts INTEGER NOT NULL DEFAULT (unixepoch()),
+                UNIQUE (guild_id, name)
+            );
+            CREATE INDEX IF NOT EXISTS idx_guild_ts ON events (guild_id, event_ts);
         """)
         await self.tree.sync()
 
@@ -38,21 +40,21 @@ async def on_ready():
 async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
     sender = ctx.author
     guild_id = ctx.guild.id
-    cur.execute("SELECT * FROM events WHERE eventname = ?", name)
-    if cur.fetchone() != None:
-        await client.send(ctx.channel, "You have already created an event with this name")
-        return;
-    
-    date_info = (guild_id, sender, name, month, day, year)
-
-    cur.execute("INSERT INTO events (guild, sender, eventname, month, day, year) VALUES (?, ?, ?, ?, ?, ?)", date_info)
+    date = convert_to_unixepoch(month, day, year)
+    date_info = (guild_id, sender, name, date, datetime.datetime.now())
+    try:
+        cur.execute("INSERT INTO events (guild, sender, eventname, event_date, created_date) VALUES (?, ?, ?, ?, ?)", date_info)
+    except sqlite3.IntegrityError:
+        await ctx.send("There's already an event with that name in this server")
+        return
+    cur.commit()
     date = f"{month}/{day}/{year}"    
     await ctx.send(f"Event '{name}' created for {date}")
 
 @bot.tree.command(name="countdown", description="get a countdown to your event")
 async def countdown(ctx, name: str) -> None:
     guild_id = ctx.guild.id
-    cur.execute("SELECT * FROM events WHERE eventname = ?, guild_id = ?")
+    cur.execute("SELECT * FROM events WHERE eventname = ? AND guild_id = ?")
     cur.fetchone().
     await ctx.send(f"Countdown for event '{name}' is not implemented yet")
 
@@ -67,5 +69,9 @@ def get_days() -> int:
     #to be implemented
     return 0
 
+def convert_to_unixepoch(month, day, year) -> int:
+    #to be implemented
+    return 0
+    
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
