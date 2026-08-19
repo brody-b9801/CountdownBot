@@ -70,7 +70,7 @@ def get_days() -> int:
     return 0
 
 def convert_to_unixepoch(month, day, year) -> int:
-    #to be implemented
+    epoch_time = int(datetime.datetime(year, month, day, 0, 0).timestamp())
     return 0
     
 load_dotenv()
