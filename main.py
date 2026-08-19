@@ -51,14 +51,21 @@ async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
 
 @bot.tree.command(name="countdown", description="get a countdown to your event")
 async def countdown(ctx, name: str) -> None:
+    guild_id = ctx.guild.id
+    cur.execute("SELECT * FROM events WHERE eventname = ?, guild_id = ?")
+    cur.fetchone().
     await ctx.send(f"Countdown for event '{name}' is not implemented yet")
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(ctx, name: str) -> None:
     sender = ctx.author
     guild_id = ctx.guild.id
-    cur.execute("DELETE * FROM events WHERE guild = ? AND sender = ? AND eventname = ?", (guild_id, sender, name))
+    cur.execute("DELETE FROM events WHERE guild = ? AND sender = ? AND eventname = ?", (guild_id, sender, name))
     await ctx.send("deleted")
+
+def get_days() -> int:
+    #to be implemented
+    return 0
 
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
