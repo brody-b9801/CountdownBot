@@ -18,7 +18,7 @@ class Bot(commands.Bot):
         cur.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild TEXT PRIMARY KEY NOT NULL UNIQUE,
+                guild TEXT KEY NOT NULL,
                 sender TEXT NOT NULL,
                 eventname TEXT NOT NULL,
                 month INTEGER,
