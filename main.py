@@ -15,6 +15,17 @@ cur = con.cursor()
 
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild TEXT PRIMARY KEY NOT NULL UNIQUE,
+                sender TEXT NOT NULL,
+                eventname TEXT NOT NULL,
+                month INTEGER,
+                day INTEGER,
+                year INTEGER
+            )
+        """)
         await self.tree.sync()
 
 bot = Bot(command_prefix='/', description=description, intents=intents)
@@ -27,19 +38,6 @@ async def on_ready():
 async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
     sender = ctx.author
     guild_id = ctx.guild.id
-
-    cur.execute(f"""
-        CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild TEXT PRIMARY KEY NOT NULL UNIQUE,
-            sender TEXT NOT NULL,
-            eventname TEXT NOT NULL,
-            month INTEGER,
-            day INTEGER,
-            year INTEGER
-        )
-    """)
-
     cur.execute("SELECT * FROM events WHERE eventname = ?", name)
     if cur.fetchone() != None:
         await client.send(ctx.channel, "You have already created an event with this name")
