@@ -55,8 +55,12 @@ async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
 async def countdown(ctx, name: str) -> None:
     guild_id = ctx.guild.id
     cur.execute("SELECT * FROM events WHERE eventname = ? AND guild_id = ?")
-    cur.fetchone().
-    await ctx.send(f"Countdown for event '{name}' is not implemented yet")
+    result = cur.fetchone()
+    if result == None:
+        await ctx.send(f"No event with name '{name}' has been created in this server")
+        return
+    
+    await ctx.send(f"{get_days_until(result.event_ts)} days until {name}!")
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(ctx, name: str) -> None:
@@ -65,13 +69,12 @@ async def delete(ctx, name: str) -> None:
     cur.execute("DELETE FROM events WHERE guild = ? AND sender = ? AND eventname = ?", (guild_id, sender, name))
     await ctx.send("deleted")
 
-def get_days() -> int:
+def get_days_until(int) -> int:
     #to be implemented
     return 0
 
 def convert_to_unixepoch(month, day, year) -> int:
-    epoch_time = int(datetime.datetime(year, month, day, 0, 0).timestamp())
-    return 0
+    return int(datetime.datetime(year, month, day, 0, 0).timestamp())
     
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
