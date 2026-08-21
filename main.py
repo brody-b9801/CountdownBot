@@ -42,13 +42,13 @@ async def on_ready():
 async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
     #input validation
     currtime = datetime.datetime.now()
-    if year < datetime.datetime.now().year 
+    if year < datetime.datetime.now().year:
         await ctx.send("Invalid year")
         return
-    if month < 0 || month > 12 || (year == currtime.year && month < currtime.month):
+    if month < 0 or month > 12 or (year == currtime.year and month < currtime.month):
         await ctx.send("Invalid month")
         return
-    if day < 0 || day > get_days_in_month(month) || (month == currtime.month && day < currtime.day ):
+    if day < 0 or day > get_days_in_month(month) or (month == currtime.month and day < currtime.day):
         await ctx.send("Invalid day")
         return
         
