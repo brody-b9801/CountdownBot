@@ -52,23 +52,23 @@ async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
         await ctx.send("Invalid day")
         return
         
-    sender = ctx.author
+    sender = ctx.author.id
     guild_id = ctx.guild.id
     date = convert_to_unixepoch(month, day, year)
     date_info = (guild_id, sender, name, date, datetime.datetime.now())
     try:
-        cur.execute("INSERT INTO events (guild, sender, eventname, event_date, created_date) VALUES (?, ?, ?, ?, ?)", date_info)
+        cur.execute("INSERT INTO events (guild_id, user_id, name, event_ts, created_ts) VALUES (?, ?, ?, ?, ?)", date_info)
     except sqlite3.IntegrityError:
         await ctx.send("There's already an event with that name in this server")
         return
-    cur.commit()
+    con.commit()
     date = f"{month}/{day}/{year}"    
     await ctx.send(f"Event '{name}' created for {date}")
 
 @bot.tree.command(name="countdown", description="get a countdown to your event")
 async def countdown(ctx, name: str) -> None:
     guild_id = ctx.guild.id
-    cur.execute("SELECT * FROM events WHERE eventname = ? AND guild_id = ?")
+    cur.execute("SELECT * FROM events WHERE name = ? AND guild_id = ?")
     result = cur.fetchone()
     if result == None:
         await ctx.send(f"No event with name '{name}' has been created in this server")
@@ -80,7 +80,7 @@ async def countdown(ctx, name: str) -> None:
 async def delete(ctx, name: str) -> None:
     sender = ctx.author
     guild_id = ctx.guild.id
-    cur.execute("DELETE FROM events WHERE guild = ? AND sender = ? AND eventname = ?", (guild_id, sender, name))
+    cur.execute("DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?", (guild_id, sender, name))
     await ctx.send("deleted")
 
 def get_days_until(int) -> int:
