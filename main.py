@@ -14,6 +14,8 @@ intents.message_content = True
 con = sqlite3.connect("event_database.db")
 cur = con.cursor()
 
+days_in_month = [31,28,31,30,31,30,31,31,30,31,30,31]
+
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
         cur.execute("""
@@ -38,6 +40,18 @@ async def on_ready():
 
 @bot.tree.command(name="schedule", description="schedule a countdown")
 async def schedule(ctx, name: str, month: int, day: int, year: int) -> None:
+    #input validation
+    currtime = datetime.datetime.now()
+    if year < datetime.datetime.now().year 
+        await ctx.send("Invalid year")
+        return
+    if month < 0 || month > 12 || (year == currtime.year && month < currtime.month):
+        await ctx.send("Invalid month")
+        return
+    if day < 0 || day > get_days_in_month(month) || (month == currtime.month && day < currtime.day ):
+        await ctx.send("Invalid day")
+        return
+        
     sender = ctx.author
     guild_id = ctx.guild.id
     date = convert_to_unixepoch(month, day, year)
@@ -75,6 +89,9 @@ def get_days_until(int) -> int:
 
 def convert_to_unixepoch(month, day, year) -> int:
     return int(datetime.datetime(year, month, day, 0, 0).timestamp())
+
+def get_days_in_month(month: int) -> int:
+    return get_days_in_month[month - 1]
     
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
