@@ -83,9 +83,8 @@ async def delete(ctx, name: str) -> None:
     cur.execute("DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?", (guild_id, sender, name))
     await ctx.send("deleted")
 
-def get_days_until(int) -> int:
-    #to be implemented
-    return 0
+def get_days_until(date: int) -> int:
+    return (date - datetime.datetime.now).days
 
 def convert_to_unixepoch(month, day, year) -> int:
     return int(datetime.datetime(year, month, day, 0, 0).timestamp())
