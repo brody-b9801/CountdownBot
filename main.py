@@ -16,6 +16,7 @@ con = sqlite3.connect("event_database.db")
 
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
+        cur = con.cursor()
         cur.executescript("""
             CREATE TABLE IF NOT EXISTS events (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +104,7 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.execute("SELECT * FROM events WHERE name = ? AND guild_id = ?", (name, guild_id))
     result = cur.fetchone()
@@ -111,7 +113,6 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
         await interaction.response.send_message(f"No event with name '{name}' has been created in this server")
         return
 
-    con.row_factory = sqlite3.Row
     event_ts = result["event_ts"]  # event_ts column
     await interaction.response.send_message(f"{get_days_until(event_ts)} days until {name}!")
 
