@@ -126,6 +126,9 @@ async def delete(interaction: discord.Interaction, name: str) -> None:
         "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
         (guild_id, sender, name),
     )
+    if cur.rowcount == 0:
+        await interaction.response.send_message("No event with that name found for you in this server")
+        return
     con.commit()
     await interaction.response.send_message("deleted")
 
