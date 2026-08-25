@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 import sqlite3
 import datetime
+import calendar
 
 description = """A discord bot to count down the days until an event"""
 
@@ -13,8 +14,6 @@ intents.message_content = True
 
 con = sqlite3.connect("event_database.db")
 cur = con.cursor()
-
-DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 
 class Bot(commands.Bot):
@@ -43,8 +42,8 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-def get_days_in_month(month: int) -> int:
-    return DAYS_IN_MONTH[month - 1]
+def get_days_in_month(month: int, year: int) -> int:
+    return calendar.monthrange(year, month)[1]
 
 
 def convert_to_unixepoch(month: int, day: int, year: int) -> int:
@@ -70,7 +69,7 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
     if month < 1 or month > 12 or (year == currtime.year and month < currtime.month):
         await interaction.response.send_message("Invalid month")
         return
-    if day < 1 or day > get_days_in_month(month) or (
+    if day < 1 or day > get_days_in_month(month, year) or (
         year == currtime.year and month == currtime.month and day < currtime.day
     ):
         await interaction.response.send_message("Invalid day")
@@ -79,7 +78,7 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
     sender = interaction.user.id
     guild_id = interaction.guild.id
     date_ts = convert_to_unixepoch(month, day, year)
-    created_ts = int(datetime.datetime.now().timestamp())
+    created_ts = int(currtime.timestamp())
     date_info = (guild_id, sender, name, date_ts, created_ts)
 
     try:
