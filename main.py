@@ -97,6 +97,9 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
 
 @bot.tree.command(name="countdown", description="get a countdown to your event")
 async def countdown(interaction: discord.Interaction, name: str) -> None:
+    if interaction.guild is None:
+        await interaction.response.send_message("This command only works in a server.")
+        return
     guild_id = interaction.guild.id
     cur.execute("SELECT * FROM events WHERE name = ? AND guild_id = ?", (name, guild_id))
     result = cur.fetchone()
@@ -111,6 +114,9 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(interaction: discord.Interaction, name: str) -> None:
+    if interaction.guild is None:
+        await interaction.response.send_message("This command only works in a server.")
+        return
     sender = interaction.user.id
     guild_id = interaction.guild.id
     cur.execute(
