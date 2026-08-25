@@ -13,8 +13,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 con = sqlite3.connect("event_database.db")
-cur = con.cursor()
-
 
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
@@ -83,6 +81,7 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
     date_ts = convert_to_unixepoch(month, day, year)
     created_ts = int(currtime.timestamp())
     date_info = (guild_id, sender, name, date_ts, created_ts)
+    cur = con.cursor()
 
     try:
         cur.execute(
@@ -104,6 +103,7 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
+    cur = con.cursor()
     cur.execute("SELECT * FROM events WHERE name = ? AND guild_id = ?", (name, guild_id))
     result = cur.fetchone()
 
@@ -111,7 +111,8 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
         await interaction.response.send_message(f"No event with name '{name}' has been created in this server")
         return
 
-    event_ts = result[4]  # event_ts column
+    con.row_factory = sqlite3.Row
+    event_ts = result["event_ts"]  # event_ts column
     await interaction.response.send_message(f"{get_days_until(event_ts)} days until {name}!")
 
 
@@ -122,6 +123,7 @@ async def delete(interaction: discord.Interaction, name: str) -> None:
         return
     sender = interaction.user.id
     guild_id = interaction.guild.id
+    cur = con.cursor()
     cur.execute(
         "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
         (guild_id, sender, name),
