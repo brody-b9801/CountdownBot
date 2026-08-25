@@ -55,10 +55,13 @@ def get_days_until(date_ts: int) -> int:
     delta = target - datetime.datetime.now()
     return max(delta.days, 0)
 
+def is_in_dms(interaction: discord.Interaction) -> bool:
+    return interaction.guild is None
+
 
 @bot.tree.command(name="schedule", description="schedule a countdown")
 async def schedule(interaction: discord.Interaction, name: str, month: int, day: int, year: int) -> None:
-    if interaction.guild is None:
+    if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     currtime = datetime.datetime.now()
@@ -97,7 +100,7 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
 
 @bot.tree.command(name="countdown", description="get a countdown to your event")
 async def countdown(interaction: discord.Interaction, name: str) -> None:
-    if interaction.guild is None:
+    if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
@@ -114,7 +117,7 @@ async def countdown(interaction: discord.Interaction, name: str) -> None:
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(interaction: discord.Interaction, name: str) -> None:
-    if interaction.guild is None:
+    if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     sender = interaction.user.id
