@@ -59,6 +59,9 @@ def get_days_until(date_ts: int) -> int:
 
 @bot.tree.command(name="schedule", description="schedule a countdown")
 async def schedule(interaction: discord.Interaction, name: str, month: int, day: int, year: int) -> None:
+    if interaction.guild is None:
+        await interaction.response.send_message("This command only works in a server.")
+        return
     currtime = datetime.datetime.now()
 
     if year < currtime.year:
