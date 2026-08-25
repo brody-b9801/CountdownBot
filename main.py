@@ -98,23 +98,25 @@ async def schedule(interaction: discord.Interaction, name: str, month: int, day:
     await interaction.response.send_message(f"Event '{name}' created for {date_str}")
 
 
-@bot.tree.command(name="countdown", description="get a countdown to your event")
-async def countdown(interaction: discord.Interaction, name: str) -> None:
+@bot.tree.command(name="countdown", description="view countdowns for events in this server")
+async def countdown(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
     con.row_factory = sqlite3.Row
     cur = con.cursor()
-    cur.execute("SELECT * FROM events WHERE name = ? AND guild_id = ?", (name, guild_id))
-    result = cur.fetchone()
+    cur.execute("SELECT * FROM events WHERE guild_id = ?", (guild_id))
+    result = cur.fetchall()
 
-    if result is None:
-        await interaction.response.send_message(f"No event with name '{name}' has been created in this server")
+    if not result:
+        await interaction.response.send_message(f"No events have been created in this server")
         return
 
-    event_ts = result["event_ts"]  # event_ts column
-    await interaction.response.send_message(f"{get_days_until(event_ts)} days until {name}!")
+    for row in result:
+        event_ts = row["event_ts"] 
+        name = row["name"]
+        await interaction.response.send_message(f"{get_days_until(event_ts)} days until {name}!")
 
 
 @bot.tree.command(name="delete", description="delete an event")
