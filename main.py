@@ -14,6 +14,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 con = sqlite3.connect("event_database.db")
+con.row_factory = sqlite3.Row
 
 class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
     event_name = discord.ui.TextInput(
@@ -117,7 +118,7 @@ bot = Bot(command_prefix='/', description=description, intents=intents)
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
-
+# --------Helper functions--------
 def get_days_in_month(month: int, year: int) -> int:
     return calendar.monthrange(year, month)[1]
 
@@ -135,6 +136,7 @@ def is_in_dms(interaction: discord.Interaction) -> bool:
     return interaction.guild is None
 
 
+# --------Scheduling command--------
 @bot.tree.command(name="schedule", description="schedule a countdown")
 async def schedule(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
@@ -143,13 +145,13 @@ async def schedule(interaction: discord.Interaction) -> None:
     await interaction.response.send_modal(ScheduleModal())
 
 
+# --------Countdown command--------
 @bot.tree.command(name="countdown", description="view countdowns for events in this server")
 async def countdown(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
-    con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.execute("SELECT * FROM events WHERE guild_id = ?", (guild_id,))
     result = cur.fetchall()
@@ -166,14 +168,21 @@ async def countdown(interaction: discord.Interaction) -> None:
     )
     await interaction.response.send_message(f"```\n{ascii_table}\n```")
 
+
+# --------Delete command--------
 @bot.tree.command(name="delete", description="delete an event")
-async def delete(interaction: discord.Interaction, name: str) -> None:
+async def delete(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     sender = interaction.user.id
     guild_id = interaction.guild.id
     cur = con.cursor()
+    cur.execute("SELECT name FROM events WHERE guild_id = ? AND user_id = ?", (guild_id, sender))
+    events = cur.fetchall()
+    for event in events:
+        event_list = event.name
+
     cur.execute(
         "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
         (guild_id, sender, name),
