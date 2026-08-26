@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import sqlite3
 import datetime
 import calendar
+from table2ascii import table2ascii as t2a, PresetStyle
 
 description = """A discord bot to count down the days until an event"""
 
@@ -156,9 +157,14 @@ async def countdown(interaction: discord.Interaction) -> None:
     if not result:
         await interaction.response.send_message("No events have been created in this server")
         return
-
-    lines = [f"{get_days_until(row['event_ts'])} days until {row['name']}!" for row in result]
-    await interaction.response.send_message("\n".join(lines))
+    headers = ["Event", "Days Remaining"]
+    data = [[row["name"], get_days_until(row["event_ts"])] for row in result]
+    ascii_table = t2a(
+        header=headers,
+        body=data,
+        style=PresetStyle.thin_compact_rounded
+    )
+    await interaction.response.send_message(f"```\n{ascii_table}\n```")
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(interaction: discord.Interaction, name: str) -> None:
