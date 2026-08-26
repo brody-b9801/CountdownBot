@@ -106,18 +106,15 @@ async def countdown(interaction: discord.Interaction) -> None:
     guild_id = interaction.guild.id
     con.row_factory = sqlite3.Row
     cur = con.cursor()
-    cur.execute("SELECT * FROM events WHERE guild_id = ?", (guild_id))
+    cur.execute("SELECT * FROM events WHERE guild_id = ?", (guild_id,))
     result = cur.fetchall()
 
     if not result:
-        await interaction.response.send_message(f"No events have been created in this server")
+        await interaction.response.send_message("No events have been created in this server")
         return
 
-    for row in result:
-        event_ts = row["event_ts"] 
-        name = row["name"]
-        await interaction.response.send_message(f"{get_days_until(event_ts)} days until {name}!")
-
+    lines = [f"{get_days_until(row['event_ts'])} days until {row['name']}!" for row in result]
+    await interaction.response.send_message("\n".join(lines))
 
 @bot.tree.command(name="delete", description="delete an event")
 async def delete(interaction: discord.Interaction, name: str) -> None:
