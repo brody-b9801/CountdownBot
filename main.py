@@ -171,18 +171,13 @@ async def countdown(interaction: discord.Interaction) -> None:
 
 # --------Delete command--------
 @bot.tree.command(name="delete", description="delete an event")
-async def delete(interaction: discord.Interaction) -> None:
+async def delete(interaction: discord.Interaction, name: str) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
     sender = interaction.user.id
     guild_id = interaction.guild.id
     cur = con.cursor()
-    cur.execute("SELECT name FROM events WHERE guild_id = ? AND user_id = ?", (guild_id, sender))
-    events = cur.fetchall()
-    for event in events:
-        event_list = event.name
-
     cur.execute(
         "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
         (guild_id, sender, name),
@@ -191,7 +186,7 @@ async def delete(interaction: discord.Interaction) -> None:
         await interaction.response.send_message("No event with that name found for you in this server")
         return
     con.commit()
-    await interaction.response.send_message("deleted")
+    await interaction.response.send_message(f"Deleted {name}")
 
 
 load_dotenv()
