@@ -3,6 +3,7 @@ import datetime
 import sqlite3
 from main import con, get_days_in_month, convert_to_unixepoch
 
+# --------Scheduling Modal--------
 class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
     event_name = discord.ui.TextInput(
         label="Event Name", 
@@ -78,3 +79,44 @@ class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
             await interaction.followup.send("An error occurred.", ephemeral=True)
         else:
             await interaction.response.send_message("An error occurred.", ephemeral=True)
+
+# --------Delete Dropdown With Pagination--------
+class DeleteDropdown(discord.ui.Select):
+    def __init__(self, options):
+        super().__init__(placeholder="Select an event to delete", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_event = self.values[0]
+        sender = interaction.user.id
+        guild_id = interaction.guild.id
+        cur = con.cursor()
+        cur.execute(
+            "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
+            (guild_id, sender, selected_event),
+        )
+        if cur.rowcount == 0:
+            await interaction.response.send_message("No event with that name found for you in this server", ephemeral=True)
+            return
+        con.commit()
+        await interaction.response.send_message(f"Deleted {selected_event}", ephemeral=True)
+
+class DeleteView(discord.ui.View):
+    def __init__(self, options):
+        super().__init__()
+        self.add_item(DeleteDropdown(options))
+
+class BackButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="<", style=discord.ButtonStyle.primary, custom_id="back")
+    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        return
+
+class ForwardButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label=">", style=discord.ButtonStyle.primary, custom_id="forward")
+    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        return
