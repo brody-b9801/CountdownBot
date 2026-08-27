@@ -106,11 +106,13 @@ class DeleteView(discord.ui.View):
         self.add_item(DeleteDropdown(options))
 
 class BackButtonView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, dropdown: DeleteDropdown):
         super().__init__(timeout=180)
+        self.add_item(dropdown)
 
     @discord.ui.button(label="<", style=discord.ButtonStyle.primary, custom_id="back")
     async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        dropdown
         return
 
 class ForwardButtonView(discord.ui.View):
