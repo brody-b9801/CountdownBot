@@ -118,7 +118,7 @@ class DeleteView(discord.ui.View):
             self.remove_item(self.back)
             self.remove_item(self.forward)
 
-        self.rebuild()
+        self.rebuild_delete()
 
     def rebuild_delete(self):
         if self.dropdown is not None:
@@ -131,6 +131,10 @@ class DeleteView(discord.ui.View):
         if self.max_page > 0:
             self.back.disabled = self.page == 0
             self.forward.disabled = self.page >= self.max_page
+
+    def cancel(self):
+        if self.dropdown is not None:
+            self.remove_item(self.dropdown)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.user_id
@@ -146,3 +150,8 @@ class DeleteView(discord.ui.View):
         self.page += 1
         self.rebuild_delete()
         await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.primary, row=2)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        cancel()
+        await interaction.response.edit_message(content="Cancelled", view=None)

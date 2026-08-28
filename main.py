@@ -96,7 +96,6 @@ async def delete(interaction: discord.Interaction) -> None:
         return
     view = DeleteView(options, interaction.user.id, interaction.guild.id)
     await interaction.response.send_message("Select an event:", view=view, ephemeral=True)
-
-
+    
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
