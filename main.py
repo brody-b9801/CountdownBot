@@ -94,7 +94,7 @@ async def delete(interaction: discord.Interaction) -> None:
     if not options:
         await interaction.response.send_message("You have no events in this server.", ephemeral=True)
         return
-    view = DeleteView(options[:25], interaction.user.id, interaction.guild.id, options)
+    view = DeleteView(options, interaction.user.id, interaction.guild.id)
     await interaction.response.send_message("Select an event:", view=view, ephemeral=True)
 
 
