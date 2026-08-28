@@ -8,28 +8,20 @@ import pytest
 
 import utilities as utils
 
-#---------Utility tests---------
+DAY = 86400
 
-SCHEMA = """
-CREATE TABLE events (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id INTEGER NOT NULL,
-    name     TEXT    NOT NULL,
-    event_ts INTEGER NOT NULL
-);
-"""
 
-#--------get_days_in_month---------
+# --------get_days_in_month--------
 
 class TestGetDaysInMonth:
     @pytest.mark.parametrize(
         "month, year, expected",
         [
             (1, 2024, 31),
-            (2, 2024, 29),   
-            (2, 2023, 28),   
-            (2, 2000, 29),  
-            (2, 1900, 28),   
+            (2, 2024, 29),
+            (2, 2023, 28),
+            (2, 2000, 29),
+            (2, 1900, 28),
             (4, 2021, 30),
             (6, 2021, 30),
             (9, 2021, 30),
@@ -53,8 +45,7 @@ class TestGetDaysInMonth:
             utils.get_days_in_month(month, 2024)
 
 
-#--------convert_to_unixepoch---------
-
+# --------convert_to_unixepoch--------
 
 class TestConvertToUnixepoch:
     def test_roundtrips_to_local_midnight(self):
@@ -72,16 +63,16 @@ class TestConvertToUnixepoch:
     def test_consecutive_january_days_differ_by_one_day(self):
         a = utils.convert_to_unixepoch(1, 10, 2024)
         b = utils.convert_to_unixepoch(1, 11, 2024)
-        assert b - a == 86_400
+        assert b - a == DAY
 
     @pytest.mark.parametrize(
         "month, day, year",
         [
-            (2, 30, 2023),  
-            (2, 29, 2023),   
-            (4, 31, 2024), 
-            (13, 1, 2024),  
-            (1, 0, 2024),    
+            (2, 30, 2023),
+            (2, 29, 2023),
+            (4, 31, 2024),
+            (13, 1, 2024),
+            (1, 0, 2024),
         ],
     )
     def test_invalid_dates_raise(self, month, day, year):
@@ -100,14 +91,14 @@ class TestConvertToUnixepoch:
         try:
             utc = ts_under("UTC")
             chicago = ts_under("America/Chicago")
-            assert utc == 1_705_276_800          
-            assert chicago - utc == 6 * 3600     
+            assert utc == 1_705_276_800
+            assert chicago - utc == 6 * 3600
         finally:
             monkeypatch.undo()
             time.tzset()
 
 
-#--------get_days_until--------
+# --------get_days_until--------
 
 FIXED_NOW = datetime(2024, 6, 15, 12, 0, 0)
 
@@ -150,6 +141,7 @@ class TestGetDaysUntil:
         ],
     )
     def test_partial_days_truncate_down(self, frozen_now, offset, expected):
+        """A partial day never rounds up: 23h59m away is still 'today'."""
         assert utils.get_days_until(_ts(frozen_now + offset)) == expected
 
     @pytest.mark.parametrize(
@@ -157,7 +149,7 @@ class TestGetDaysUntil:
         [
             (timedelta(days=-1), -1),
             (timedelta(days=-5), -5),
-            (timedelta(hours=-1), -1),      
+            (timedelta(hours=-1), -1),
             (timedelta(days=-1, hours=-1), -2),
             (timedelta(minutes=-1), -1),
         ],
@@ -173,7 +165,7 @@ class TestGetDaysUntil:
         assert utils.get_days_until(far_future) == 10
 
 
-#--------is_in_dms--------
+# --------is_in_dms--------
 
 class TestIsInDms:
     def test_true_when_guild_is_none(self):
@@ -191,22 +183,27 @@ class TestIsInDms:
         assert utils.is_in_dms(SimpleNamespace(guild=EmptyGuild())) is False
 
 
-#--------delete_past_events--------
+# --------delete_past_events--------
+
+@pytest.fixture
+def now():
+    return int(time.time())
+
 
 @pytest.fixture
 def db(monkeypatch):
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
-    conn.executescript(SCHEMA)
+    utils.init_db(conn)
     monkeypatch.setattr(utils, "con", conn)
     yield conn
     conn.close()
 
 
-def add_event(conn, guild_id, name, ts):
+def add_event(conn, guild_id, name, ts, user_id=1):
     conn.execute(
-        "INSERT INTO events (guild_id, name, event_ts) VALUES (?, ?, ?)",
-        (guild_id, name, ts),
+        "INSERT INTO events (guild_id, user_id, name, event_ts) VALUES (?, ?, ?, ?)",
+        (guild_id, user_id, name, ts),
     )
     conn.commit()
 
@@ -221,39 +218,35 @@ def event_names(conn, guild_id=None):
     return [r["name"] for r in rows]
 
 
-NOW = int(time.time())
-HOUR = 3600
-DAY = 86400
-
 class TestDeletePastEvents:
-    def test_removes_past_events(self, db):
-        add_event(db, 1, "yesterday", NOW - DAY)
-        add_event(db, 1, "last_week", NOW - 7 * DAY)
+    def test_removes_past_events(self, db, now):
+        add_event(db, 1, "yesterday", now - DAY)
+        add_event(db, 1, "last_week", now - 7 * DAY)
 
         utils.delete_past_events(1)
 
         assert event_names(db) == []
 
-    def test_keeps_future_events(self, db):
-        add_event(db, 1, "tomorrow", NOW + DAY)
-        add_event(db, 1, "next_month", NOW + 30 * DAY)
+    def test_keeps_future_events(self, db, now):
+        add_event(db, 1, "tomorrow", now + DAY)
+        add_event(db, 1, "next_month", now + 30 * DAY)
 
         utils.delete_past_events(1)
 
         assert event_names(db) == ["next_month", "tomorrow"]
 
-    def test_mixed_past_and_future(self, db):
-        add_event(db, 1, "past", NOW - DAY)
-        add_event(db, 1, "future", NOW + DAY)
+    def test_mixed_past_and_future(self, db, now):
+        add_event(db, 1, "past", now - DAY)
+        add_event(db, 1, "future", now + DAY)
 
         utils.delete_past_events(1)
 
         assert event_names(db) == ["future"]
 
-    def test_leaves_other_guilds_alone(self, db):
-        add_event(db, 1, "guild1_past", NOW - DAY)
-        add_event(db, 2, "guild2_past", NOW - DAY)
-        add_event(db, 2, "guild2_future", NOW + DAY)
+    def test_leaves_other_guilds_alone(self, db, now):
+        add_event(db, 1, "guild1_past", now - DAY)
+        add_event(db, 2, "guild2_past", now - DAY)
+        add_event(db, 2, "guild2_future", now + DAY)
 
         utils.delete_past_events(1)
 
@@ -264,29 +257,39 @@ class TestDeletePastEvents:
         utils.delete_past_events(999)
         assert event_names(db) == []
 
-    def test_no_error_for_unknown_guild(self, db):
-        add_event(db, 1, "keeper", NOW - DAY)
+    def test_no_error_for_unknown_guild(self, db, now):
+        add_event(db, 1, "keeper", now - DAY)
         utils.delete_past_events(424242)
         assert event_names(db) == ["keeper"]
 
-    def test_boundary_just_past_vs_just_future(self, db):
-        add_event(db, 1, "just_past", NOW - 60)
-        add_event(db, 1, "just_future", NOW + 60)
+    def test_boundary_just_past_vs_just_future(self, db, now):
+        add_event(db, 1, "just_past", now - 3600)
+        add_event(db, 1, "just_future", now + 3600)
 
         utils.delete_past_events(1)
 
         assert event_names(db) == ["just_future"]
 
+    def test_duplicate_name_in_same_guild_rejected(self, db, now):
+        add_event(db, 1, "party", now + DAY)
+        with pytest.raises(sqlite3.IntegrityError):
+            add_event(db, 1, "party", now + 2 * DAY)
+
+    def test_same_name_allowed_in_different_guilds(self, db, now):
+        add_event(db, 1, "party", now + DAY)
+        add_event(db, 2, "party", now + DAY)
+        assert event_names(db) == ["party", "party"]
+
     def test_returns_none(self, db):
         assert utils.delete_past_events(1) is None
 
-    def test_deletion_is_committed(self, tmp_path, monkeypatch):
+    def test_deletion_is_committed(self, tmp_path, monkeypatch, now):
         path = tmp_path / "events.db"
         writer = sqlite3.connect(path)
         writer.row_factory = sqlite3.Row
-        writer.executescript(SCHEMA)
-        add_event(writer, 1, "past", NOW - DAY)
-        add_event(writer, 1, "future", NOW + DAY)
+        utils.init_db(writer)
+        add_event(writer, 1, "past", now - DAY)
+        add_event(writer, 1, "future", now + DAY)
         monkeypatch.setattr(utils, "con", writer)
 
         utils.delete_past_events(1)

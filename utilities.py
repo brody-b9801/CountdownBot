@@ -6,7 +6,23 @@ import discord
 
 con = sqlite3.connect("event_database.db")
 con.row_factory = sqlite3.Row
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id   INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    name       TEXT NOT NULL,
+    event_ts   INTEGER NOT NULL,
+    created_ts INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE (guild_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_guild_ts ON events (guild_id, event_ts);
+"""
 
+
+def init_db(conn: sqlite3.Connection) -> None:
+    conn.executescript(SCHEMA)
+    conn.commit()
 
 def get_days_in_month(month: int, year: int) -> int:
     return calendar.monthrange(year, month)[1]

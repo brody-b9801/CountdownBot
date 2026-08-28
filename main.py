@@ -16,21 +16,8 @@ intents = discord.Intents.default()
 
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
-        con.executescript("""
-            CREATE TABLE IF NOT EXISTS events (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                guild_id   INTEGER NOT NULL,
-                user_id    INTEGER NOT NULL,
-                name       TEXT NOT NULL,
-                event_ts   INTEGER NOT NULL,
-                created_ts INTEGER NOT NULL DEFAULT (unixepoch()),
-                UNIQUE (guild_id, name)
-            );
-            CREATE INDEX IF NOT EXISTS idx_guild_ts ON events (guild_id, event_ts);
-        """)
-        con.commit()
+        init_db(con)
         await self.tree.sync()
-
 
 bot = Bot(command_prefix='/', description=description, intents=intents)
 
