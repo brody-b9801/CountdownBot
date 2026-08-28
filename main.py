@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from table2ascii import table2ascii as t2a, PresetStyle
 
 from ui import ScheduleModal, DeleteView
-from utilities import con, is_in_dms, get_days_until, delete_past_events
+from utilities import con, init_db, is_in_dms, get_days_until, delete_past_events
 
 description = """A discord bot to count down the days until an event"""
 
