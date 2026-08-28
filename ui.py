@@ -153,5 +153,4 @@ class DeleteView(discord.ui.View):
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.primary, row=2)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        cancel()
-        await interaction.response.edit_message(content="Cancelled", view=None)
+        await interaction.response.edit_message(content="Canceled", view=None)
