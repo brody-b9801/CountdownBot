@@ -44,7 +44,7 @@ class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
         
         currtime = datetime.datetime.now()
 
-        if year < currtime.year:
+        if year < currtime.year or year > currtime.year + 100:
             await interaction.response.send_message("Invalid year")
             return
         if month < 1 or month > 12 or (year == currtime.year and month < currtime.month):
