@@ -92,7 +92,6 @@ class TestConvertToUnixepoch:
         not hasattr(time, "tzset"), reason="TZ manipulation needs POSIX tzset"
     )
     def test_result_depends_on_local_timezone(self, monkeypatch):
-        """Documents that this helper is local-time based, not UTC based."""
         def ts_under(tz):
             monkeypatch.setenv("TZ", tz)
             time.tzset()
@@ -115,8 +114,6 @@ FIXED_NOW = datetime(2024, 6, 15, 12, 0, 0)
 
 @pytest.fixture
 def frozen_now(monkeypatch):
-    """Pin utils.datetime.now() to FIXED_NOW."""
-
     class FrozenDateTime(datetime):
         @classmethod
         def now(cls, tz=None):
@@ -153,7 +150,6 @@ class TestGetDaysUntil:
         ],
     )
     def test_partial_days_truncate_down(self, frozen_now, offset, expected):
-        """A partial day never rounds up: 23h59m away is still 'today'."""
         assert utils.get_days_until(_ts(frozen_now + offset)) == expected
 
     @pytest.mark.parametrize(
@@ -188,7 +184,6 @@ class TestIsInDms:
         assert utils.is_in_dms(SimpleNamespace(guild=guild)) is False
 
     def test_falsy_but_not_none_guild_is_not_a_dm(self):
-        """Guard against someone swapping the check for `not interaction.guild`."""
         class EmptyGuild:
             def __bool__(self):
                 return False
@@ -200,7 +195,6 @@ class TestIsInDms:
 
 @pytest.fixture
 def db(monkeypatch):
-    """Swap the module-level connection for a throwaway in-memory one."""
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
