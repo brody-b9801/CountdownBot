@@ -4,6 +4,7 @@ import sqlite3
 import discord
     
 con = sqlite3.connect("event_database.db")
+con.row_factory = sqlite3.Row
 
 def get_days_in_month(month: int, year: int) -> int:
     return calendar.monthrange(year, month)[1]
@@ -21,12 +22,10 @@ def get_days_until(date_ts: int) -> int:
 def is_in_dms(interaction: discord.Interaction) -> bool:
     return interaction.guild is None
 
-def audit_events(interaction: discord.Interaction): 
+def delete_past_events(guild_id: int) -> None:
     cur = con.cursor()
-    cur.execute("SELECT from events WHERE ")
-
-def delete_past_events(list: []):
-    cur = con.cursor()
-    for event in options:
-        if get_days_until(event) < 0:
-            cur.execute("DELETE FROM event WHERE name=?", event)
+    cur.execute(
+        "DELETE FROM events WHERE guild_id = ? AND event_ts < unixepoch()",
+        (guild_id,),
+    )
+    con.commit()

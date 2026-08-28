@@ -1,6 +1,6 @@
 import discord
 from ui import DeleteDropdown, ScheduleModal, DeleteView
-from utilities import con, is_in_dms, get_days_until
+from utilities import con, is_in_dms, get_days_until, delete_past_events
 from discord import app_commands
 from discord.ext import commands
 import os
@@ -61,6 +61,7 @@ async def countdown(interaction: discord.Interaction) -> None:
         await interaction.response.send_message("This command only works in a server.")
         return
     guild_id = interaction.guild.id
+    delete_past_events(guild_id)
     cur = con.cursor()
     cur.execute("SELECT * FROM events WHERE guild_id = ?", (guild_id,))
     result = cur.fetchall()
@@ -68,14 +69,13 @@ async def countdown(interaction: discord.Interaction) -> None:
     if not result:
         await interaction.response.send_message("No events have been created in this server")
         return
-    delete_past_events(result)
-    
+
     headers = ["Event", "Days Remaining"]
     data = [[row["name"], get_days_until(row["event_ts"])] for row in result]
     ascii_table = t2a(
         header=headers,
         body=data,
-        style=PresetStyle.thin_compact_rounded
+        style=PresetStyle.thin_box
     )
     await interaction.response.send_message(f"```\n{ascii_table}\n```")
 
@@ -86,13 +86,13 @@ async def delete(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
+    delete_past_events(interaction.guild.id)
     cur = con.cursor()
     cur.execute(
         "SELECT name FROM events WHERE guild_id = ? AND user_id = ?",
         (interaction.guild.id, interaction.user.id),
     )
     options = [discord.SelectOption(label=row["name"]) for row in cur.fetchall()]
-    delete_past_events(options)
     if not options:
         await interaction.response.send_message("You have no events in this server.", ephemeral=True)
         return
