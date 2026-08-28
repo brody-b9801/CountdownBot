@@ -1,6 +1,7 @@
 import discord
 import datetime
 import sqlite3
+import math
 from utilities import con, get_days_in_month, convert_to_unixepoch
 
 # --------Scheduling Modal--------
@@ -103,7 +104,6 @@ class DeleteDropdown(discord.ui.Select):
 
 
 class DeleteView(discord.ui.View):
-    PAGE_SIZE = 25
 
     def __init__(self, full_options, user_id, guild_id):
         super().__init__(timeout=60)
@@ -111,7 +111,7 @@ class DeleteView(discord.ui.View):
         self.user_id = user_id
         self.guild_id = guild_id
         self.page = 0
-        self.max_page = max(0, math.ceil(len(full_options) / self.PAGE_SIZE) - 1)
+        self.max_page = max(0, math.ceil(len(full_options) / 25) - 1)
         self.dropdown = None
 
         if self.max_page == 0:
@@ -120,11 +120,11 @@ class DeleteView(discord.ui.View):
 
         self.rebuild()
 
-    def rebuild(self):
+    def rebuild_delete(self):
         if self.dropdown is not None:
             self.remove_item(self.dropdown)
-        start = self.page * self.PAGE_SIZE
-        page_options = self.full_options[start:start + self.PAGE_SIZE]
+        start = self.page * 25
+        page_options = self.full_options[start:start + 25]
         self.dropdown = DeleteDropdown(page_options, self.user_id, self.guild_id)
         self.add_item(self.dropdown)
 
@@ -138,11 +138,11 @@ class DeleteView(discord.ui.View):
     @discord.ui.button(label="<", style=discord.ButtonStyle.secondary, row=1)
     async def back(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.page -= 1
-        self.rebuild()
+        self.rebuild_delete()
         await interaction.response.edit_message(view=self)
 
     @discord.ui.button(label=">", style=discord.ButtonStyle.secondary, row=1)
     async def forward(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.page += 1
-        self.rebuild()
+        self.rebuild_delete()
         await interaction.response.edit_message(view=self)
