@@ -1,7 +1,7 @@
 import discord
 import datetime
 import sqlite3
-from main import con, get_days_in_month, convert_to_unixepoch
+from utilities import con, get_days_in_month, convert_to_unixepoch
 
 # --------Scheduling Modal--------
 class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
@@ -81,44 +81,68 @@ class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):
             await interaction.response.send_message("An error occurred.", ephemeral=True)
 
 # --------Delete Dropdown With Pagination--------
+
 class DeleteDropdown(discord.ui.Select):
-    def __init__(self, options):
-        super().__init__(placeholder="Select an event to delete", min_values=1, max_values=1, options=options)
+    def __init__(self, options, user_id, guild_id):
+        super().__init__(placeholder="Pick an event to delete", options=options, row=0)
+        self.user_id = user_id
+        self.guild_id = guild_id
 
     async def callback(self, interaction: discord.Interaction):
-        selected_event = self.values[0]
-        sender = interaction.user.id
-        guild_id = interaction.guild.id
+        name = self.values[0]
         cur = con.cursor()
         cur.execute(
             "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
-            (guild_id, sender, selected_event),
+            (self.guild_id, self.user_id, name),
         )
-        if cur.rowcount == 0:
-            await interaction.response.send_message("No event with that name found for you in this server", ephemeral=True)
-            return
         con.commit()
-        await interaction.response.send_message(f"Deleted {selected_event}", ephemeral=True)
+        if cur.rowcount == 0:
+            await interaction.response.edit_message(content="That event no longer exists.", view=None)
+        else:
+            await interaction.response.edit_message(content=f"Deleted {name}", view=None)
+
 
 class DeleteView(discord.ui.View):
-    def __init__(self, options):
-        super().__init__()
-        self.add_item(DeleteDropdown(options))
+    PAGE_SIZE = 25
 
-class BackButtonView(discord.ui.View):
-    def __init__(self, dropdown: DeleteDropdown):
-        super().__init__(timeout=180)
-        self.add_item(dropdown)
+    def __init__(self, full_options, user_id, guild_id):
+        super().__init__(timeout=60)
+        self.full_options = full_options
+        self.user_id = user_id
+        self.guild_id = guild_id
+        self.page = 0
+        self.max_page = max(0, math.ceil(len(full_options) / self.PAGE_SIZE) - 1)
+        self.dropdown = None
 
-    @discord.ui.button(label="<", style=discord.ButtonStyle.primary, custom_id="back")
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        dropdown
-        return
+        if self.max_page == 0:
+            self.remove_item(self.back)
+            self.remove_item(self.forward)
 
-class ForwardButtonView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=180)
+        self.rebuild()
 
-    @discord.ui.button(label=">", style=discord.ButtonStyle.primary, custom_id="forward")
-    async def button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        return
+    def rebuild(self):
+        if self.dropdown is not None:
+            self.remove_item(self.dropdown)
+        start = self.page * self.PAGE_SIZE
+        page_options = self.full_options[start:start + self.PAGE_SIZE]
+        self.dropdown = DeleteDropdown(page_options, self.user_id, self.guild_id)
+        self.add_item(self.dropdown)
+
+        if self.max_page > 0:
+            self.back.disabled = self.page == 0
+            self.forward.disabled = self.page >= self.max_page
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    @discord.ui.button(label="<", style=discord.ButtonStyle.secondary, row=1)
+    async def back(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page -= 1
+        self.rebuild()
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label=">", style=discord.ButtonStyle.secondary, row=1)
+    async def forward(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page += 1
+        self.rebuild()
+        await interaction.response.edit_message(view=self)

@@ -1,6 +1,6 @@
 import discord
-from ui import DeleteDropdown, ScheduleModal
-from utilities import is_in_dms, get_days_until
+from ui import DeleteDropdown, ScheduleModal, DeleteView
+from utilities import con, is_in_dms, get_days_until
 from discord import app_commands
 from discord.ext import commands
 import os
@@ -14,10 +14,9 @@ description = """A discord bot to count down the days until an event"""
 
 intents = discord.Intents.default()
 intents.message_content = True
+limit_items_25 = False # Flag to limit events that can be created to 25 (chosen because selects w/o pagination are 25 elements, and this would keep database size down)
 
-con = sqlite3.connect("event_database.db")
 con.row_factory = sqlite3.Row
-
 
 class Bot(commands.Bot):
     async def setup_hook(self) -> None:
@@ -86,23 +85,17 @@ async def delete(interaction: discord.Interaction) -> None:
     if is_in_dms(interaction):
         await interaction.response.send_message("This command only works in a server.")
         return
-    sender = interaction.user.id
-    guild_id = interaction.guild.id
     cur = con.cursor()
-    cur.execute("SELECT name FROM events WHERE guild_id = ? AND user_id = ?", (guild_id, sender))
-    eventname = await interaction.response.send_dropdown(DeleteDropdown([discord.SelectOption(label=row["name"]) for row in cur.fetchall()]))
-    if not eventname:
-        await interaction.response.send_message("No event selected.", ephemeral=True)
-        return
     cur.execute(
-        "DELETE FROM events WHERE guild_id = ? AND user_id = ? AND name = ?",
-        (guild_id, sender, eventname),
+        "SELECT name FROM events WHERE guild_id = ? AND user_id = ?",
+        (interaction.guild.id, interaction.user.id),
     )
-    if cur.rowcount == 0:
-        await interaction.response.send_message("No event with that name found for you in this server")
+    options = [discord.SelectOption(label=row["name"]) for row in cur.fetchall()]
+    if not options:
+        await interaction.response.send_message("You have no events in this server.", ephemeral=True)
         return
-    con.commit()
-    await interaction.response.send_message(f"Deleted {eventname}")
+    view = DeleteView(options[:25], interaction.user.id, interaction.guild.id, options)
+    await interaction.response.send_message("Select an event:", view=view, ephemeral=True)
 
 
 load_dotenv()

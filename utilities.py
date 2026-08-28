@@ -1,6 +1,9 @@
 import calendar
 from datetime import datetime
+import sqlite3
 import discord
+    
+con = sqlite3.connect("event_database.db")
 
 def get_days_in_month(month: int, year: int) -> int:
     return calendar.monthrange(year, month)[1]
@@ -17,3 +20,7 @@ def get_days_until(date_ts: int) -> int:
 
 def is_in_dms(interaction: discord.Interaction) -> bool:
     return interaction.guild is None
+
+def audit_events(interaction: discord.Interaction): 
+    cur = con.cursor()
+    cur.execute("SELECT from events WHERE ")
