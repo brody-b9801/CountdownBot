@@ -1,10 +1,12 @@
 import calendar
-from datetime import datetime
 import sqlite3
+from datetime import datetime
+
 import discord
-    
+
 con = sqlite3.connect("event_database.db")
 con.row_factory = sqlite3.Row
+
 
 def get_days_in_month(month: int, year: int) -> int:
     return calendar.monthrange(year, month)[1]
@@ -15,16 +17,15 @@ def convert_to_unixepoch(month: int, day: int, year: int) -> int:
 
 
 def get_days_until(date_ts: int) -> int:
-    target = datetime.fromtimestamp(date_ts)
-    delta = target - datetime.now()
-    return delta.days
+    return (datetime.fromtimestamp(date_ts) - datetime.now()).days
+
 
 def is_in_dms(interaction: discord.Interaction) -> bool:
     return interaction.guild is None
 
+
 def delete_past_events(guild_id: int) -> None:
-    cur = con.cursor()
-    cur.execute(
+    con.execute(
         "DELETE FROM events WHERE guild_id = ? AND event_ts < unixepoch()",
         (guild_id,),
     )
