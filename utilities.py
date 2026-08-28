@@ -16,7 +16,7 @@ def convert_to_unixepoch(month: int, day: int, year: int) -> int:
 def get_days_until(date_ts: int) -> int:
     target = datetime.fromtimestamp(date_ts)
     delta = target - datetime.now()
-    return max(delta.days, 0)
+    return delta.days
 
 def is_in_dms(interaction: discord.Interaction) -> bool:
     return interaction.guild is None
@@ -24,3 +24,9 @@ def is_in_dms(interaction: discord.Interaction) -> bool:
 def audit_events(interaction: discord.Interaction): 
     cur = con.cursor()
     cur.execute("SELECT from events WHERE ")
+
+def delete_past_events(list: []):
+    cur = con.cursor()
+    for event in options:
+        if get_days_until(event) < 0:
+            cur.execute("DELETE FROM event WHERE name=?", event)

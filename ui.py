@@ -2,7 +2,7 @@ import discord
 import datetime
 import sqlite3
 import math
-from utilities import con, get_days_in_month, convert_to_unixepoch
+from utilities import con, get_days_in_month, convert_to_unixepoch, delete_past_events
 
 # --------Scheduling Modal--------
 class ScheduleModal(discord.ui.Modal, title="Schedule an Event"):

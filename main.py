@@ -14,7 +14,6 @@ description = """A discord bot to count down the days until an event"""
 
 intents = discord.Intents.default()
 intents.message_content = True
-limit_items_25 = False # Flag to limit events that can be created to 25 (chosen because selects w/o pagination are 25 elements, and this would keep database size down)
 
 con.row_factory = sqlite3.Row
 
@@ -69,6 +68,8 @@ async def countdown(interaction: discord.Interaction) -> None:
     if not result:
         await interaction.response.send_message("No events have been created in this server")
         return
+    delete_past_events(result)
+    
     headers = ["Event", "Days Remaining"]
     data = [[row["name"], get_days_until(row["event_ts"])] for row in result]
     ascii_table = t2a(
@@ -91,11 +92,12 @@ async def delete(interaction: discord.Interaction) -> None:
         (interaction.guild.id, interaction.user.id),
     )
     options = [discord.SelectOption(label=row["name"]) for row in cur.fetchall()]
+    delete_past_events(options)
     if not options:
         await interaction.response.send_message("You have no events in this server.", ephemeral=True)
         return
     view = DeleteView(options, interaction.user.id, interaction.guild.id)
     await interaction.response.send_message("Select an event:", view=view, ephemeral=True)
-    
+
 load_dotenv()
 bot.run(os.environ["DISCORD_TOKEN"])
