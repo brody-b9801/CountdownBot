@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS events (
     UNIQUE (guild_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_guild_ts ON events (guild_id, event_ts);
+CREATE TABLE IF NOT EXISTS pings (
+    guild_id   INTEGER PRIMARY KEY,
+    ping_time  TEXT NOT NULL,
+    timezone   TEXT NOT NULL
+);
 """
 
 

@@ -1,7 +1,9 @@
 import os
 import sqlite3
+import zoneinfo
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from table2ascii import table2ascii as t2a, PresetStyle
@@ -21,11 +23,13 @@ class Bot(commands.Bot):
 
 bot = Bot(command_prefix='/', description=description, intents=intents)
 
+TIMEZONES = sorted(zoneinfo.available_timezones())
+
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-
+    scheduleNextPing();
 
 # --------Scheduling command--------
 @bot.tree.command(name="schedule", description="schedule a countdown")
@@ -93,6 +97,58 @@ async def delete(interaction: discord.Interaction) -> None:
     options = [discord.SelectOption(label=row["name"]) for row in rows]
     view = DeleteView(options, interaction.user.id, guild_id)
     await interaction.response.send_message("Select an event:", view=view, ephemeral=True)
+
+# --------Setup ping command--------
+@bot.tree.command(name="setup-ping", description="set the daily countdown ping time (server owner only)")
+@app_commands.describe(
+    hour="Hour of the day (0-23)",
+    minute="Minute of the hour (0-59)",
+    timezone="Server time zone, e.g. America/Chicago",
+)
+async def setup_ping(
+    interaction: discord.Interaction,
+    hour: app_commands.Range[int, 0, 23],
+    minute: app_commands.Range[int, 0, 59],
+    timezone: str,
+) -> None:
+    if is_in_dms(interaction):
+        await interaction.response.send_message(
+            "This command only works in a server.", ephemeral=True
+        )
+        return
+
+    if interaction.user.id != interaction.guild.owner_id:
+        await interaction.response.send_message(
+            "Only the server owner can use this command.", ephemeral=True
+        )
+        return
+
+    if timezone not in TIMEZONES:
+        await interaction.response.send_message(
+            "Invalid time zone, pick one from the list (e.g. America/Chicago).", ephemeral=True
+        )
+        return
+
+    ping_time = f"{hour:02d}:{minute:02d}"
+    con.execute(
+        "INSERT INTO pings (guild_id, ping_time, timezone) VALUES (?, ?, ?) "
+        "ON CONFLICT (guild_id) DO UPDATE SET ping_time = excluded.ping_time, timezone = excluded.timezone",
+        (interaction.guild.id, ping_time, timezone),
+    )
+    con.commit()
+    await interaction.response.send_message(
+        f"Daily ping time set to {ping_time} ({timezone})", ephemeral=True
+    )
+
+
+@setup_ping.autocomplete("timezone")
+async def timezone_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> list[app_commands.Choice[str]]:
+    matches = [tz for tz in TIMEZONES if current.lower() in tz.lower()]
+    return [app_commands.Choice(name=tz, value=tz) for tz in matches[:25]]
+
+# --------Scheduled ping--------
 
 
 load_dotenv()
