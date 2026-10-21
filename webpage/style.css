@@ -1,0 +1,92 @@
+body {
+    text-align: center;
+    font-family: "VT323", monospace;
+    background-color: rgb(255, 173, 250);
+    color: white;
+    /* Black outline around the text, drawn with shadows on every side */
+    text-shadow:
+        -1px 0 0 black,
+         1px 0 0 black,
+         0 -1px 0 black,
+         0  1px 0 black;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.headerFlamingo {
+    height: 100px;
+    width: auto;
+    /* Keep the pixel art sharp instead of blurry when scaled */
+    image-rendering: pixelated;
+}
+
+.thumbnailContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 20px auto 0;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}
+
+.thumbnail {
+    display: flex;
+    flex-direction: column;
+    /* Fixed card width so a short last row stays centred instead of stretching */
+    flex: 0 1 360px;
+}
+
+.thumbnailImage {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border: 2px white solid;
+}
+
+.thumbnailDesc {
+    text-align: center;
+}
+
+.link {
+  /* Fixed height with centred content so the icon button and text button match */
+  display: inline-flex;
+  align-items: center;
+  height: 2.5em;
+  box-sizing: border-box;
+  vertical-align: middle;
+  padding: 0 20px;
+  background-color: rgb(253, 99, 184);
+  color: white;
+  text-decoration: none;
+  text-shadow: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.githubIcon {
+  display: block;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.link:hover {
+  background-color: rgb(150, 59, 109);
+}
+
+.pagebreak {
+    width: 100px;
+    margin-top: 30px;
+}
+
+.buttonContainer {
+    margin-top: 30px;
+}
