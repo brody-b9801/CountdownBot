@@ -120,28 +120,31 @@ def _ts(dt: datetime) -> int:
 
 class TestGetDaysUntil:
     @pytest.mark.parametrize(
-        "offset, expected",
+        "month, day, expected",
         [
-            (timedelta(days=5), 5),
-            (timedelta(days=1), 1),
-            (timedelta(days=30), 30),
-            (timedelta(0), 0),
+            (6, 16, 1),
+            (6, 20, 5),
+            (7, 15, 30),
+            (6, 15, 0),
         ],
     )
-    def test_whole_days_in_future(self, frozen_now, offset, expected):
-        assert utils.get_days_until(_ts(frozen_now + offset)) == expected
+    def test_event_dates_in_future(self, frozen_now, month, day, expected):
+        """Events are stored at midnight, so tomorrow's event is 1 day away even
+        though it is only 12 hours from FIXED_NOW."""
+        ts = utils.convert_to_unixepoch(month, day, 2024)
+        assert utils.get_days_until(ts) == expected
 
     @pytest.mark.parametrize(
         "offset, expected",
         [
             (timedelta(hours=1), 0),
-            (timedelta(hours=23, minutes=59), 0),
-            (timedelta(days=1, hours=23), 1),
-            (timedelta(days=2, hours=12), 2),
+            (timedelta(hours=11, minutes=59), 0),
+            (timedelta(hours=12), 1),
+            (timedelta(days=1, hours=11), 1),
+            (timedelta(days=2, hours=12), 3),
         ],
     )
-    def test_partial_days_truncate_down(self, frozen_now, offset, expected):
-        """A partial day never rounds up: 23h59m away is still 'today'."""
+    def test_counts_calendar_days_not_24_hour_periods(self, frozen_now, offset, expected):
         assert utils.get_days_until(_ts(frozen_now + offset)) == expected
 
     @pytest.mark.parametrize(
@@ -149,12 +152,12 @@ class TestGetDaysUntil:
         [
             (timedelta(days=-1), -1),
             (timedelta(days=-5), -5),
-            (timedelta(hours=-1), -1),
-            (timedelta(days=-1, hours=-1), -2),
-            (timedelta(minutes=-1), -1),
+            (timedelta(hours=-1), 0),
+            (timedelta(hours=-12, minutes=-1), -1),
+            (timedelta(days=-1, hours=-1), -1),
         ],
     )
-    def test_past_dates_floor_toward_negative(self, frozen_now, offset, expected):
+    def test_past_dates(self, frozen_now, offset, expected):
         assert utils.get_days_until(_ts(frozen_now + offset)) == expected
 
     def test_returns_int(self, frozen_now):
@@ -227,6 +230,14 @@ class TestDeletePastEvents:
 
         assert event_names(db) == []
 
+    def test_keeps_todays_event_until_the_day_after(self, db):
+        today = datetime.now()
+        add_event(db, 1, "today", utils.convert_to_unixepoch(today.month, today.day, today.year))
+
+        utils.delete_past_events(1)
+
+        assert event_names(db) == ["today"]
+
     def test_keeps_future_events(self, db, now):
         add_event(db, 1, "tomorrow", now + DAY)
         add_event(db, 1, "next_month", now + 30 * DAY)
@@ -262,13 +273,15 @@ class TestDeletePastEvents:
         utils.delete_past_events(424242)
         assert event_names(db) == ["keeper"]
 
-    def test_boundary_just_past_vs_just_future(self, db, now):
-        add_event(db, 1, "just_past", now - 3600)
-        add_event(db, 1, "just_future", now + 3600)
+    def test_boundary_is_start_of_today(self, db):
+        today = datetime.now()
+        today_start = utils.convert_to_unixepoch(today.month, today.day, today.year)
+        add_event(db, 1, "end_of_yesterday", today_start - 1)
+        add_event(db, 1, "start_of_today", today_start)
 
         utils.delete_past_events(1)
 
-        assert event_names(db) == ["just_future"]
+        assert event_names(db) == ["start_of_today"]
 
     def test_duplicate_name_in_same_guild_rejected(self, db, now):
         add_event(db, 1, "party", now + DAY)

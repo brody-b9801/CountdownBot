@@ -69,7 +69,7 @@ async def countdown(interaction: discord.Interaction) -> None:
     await interaction.response.send_message(message)
 
 
-def build_countdown_message(guild_id: int) -> str | None:
+def build_countdown_message(guild_id: int, announce_today: bool = False) -> str | None:
     delete_past_events(guild_id)
 
     rows = con.execute(
@@ -85,7 +85,13 @@ def build_countdown_message(guild_id: int) -> str | None:
         body=[[row["name"], get_days_until(row["event_ts"])] for row in rows],
         style=PresetStyle.thin_box,
     )
-    return f"```\n{ascii_table}\n```"
+    message = f"```\n{ascii_table}\n```"
+
+    todays_events = [row["name"] for row in rows if get_days_until(row["event_ts"]) == 0]
+    if announce_today and todays_events:
+        verb = "is" if len(todays_events) == 1 else "are"
+        message += f"\nWoohooo! {', '.join(todays_events)} {verb} today!"
+    return message
 
 
 # --------Delete command--------
@@ -224,7 +230,7 @@ async def send_due_pings() -> None:
         con.commit()
 
         channel = bot.get_channel(row["channel_id"])
-        message = build_countdown_message(row["guild_id"])
+        message = build_countdown_message(row["guild_id"], announce_today=True)
         if channel is None or message is None:
             continue
         try:

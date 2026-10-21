@@ -46,7 +46,9 @@ def convert_to_unixepoch(month: int, day: int, year: int) -> int:
 
 
 def get_days_until(date_ts: int) -> int:
-    return (datetime.fromtimestamp(date_ts) - datetime.now()).days
+    # Compare calendar dates, not exact times: events are stored at midnight, so an
+    # event tomorrow is under 24 hours away but should still count as 1 day
+    return (datetime.fromtimestamp(date_ts).date() - datetime.now().date()).days
 
 
 def is_in_dms(interaction: discord.Interaction) -> bool:
@@ -54,8 +56,10 @@ def is_in_dms(interaction: discord.Interaction) -> bool:
 
 
 def delete_past_events(guild_id: int) -> None:
+    # Keep today's events so they show "0 days" on the day, and delete them the day after
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     con.execute(
-        "DELETE FROM events WHERE guild_id = ? AND event_ts < unixepoch()",
-        (guild_id,),
+        "DELETE FROM events WHERE guild_id = ? AND event_ts < ?",
+        (guild_id, int(today_start.timestamp())),
     )
     con.commit()
