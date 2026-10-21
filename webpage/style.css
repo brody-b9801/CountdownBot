@@ -1,9 +1,35 @@
+/* The page edges outside the content column, in the button colour */
+html {
+    background-color: rgb(253, 99, 155);
+}
+
+/* The column is sized to fit a whole number of thumbnail cards, so the coloured
+   edges hug the content: 3 cards wide on big screens, 2 on medium, full width on phones */
+:root {
+    --card-width: 360px;
+    --card-gap: 20px;
+    /* body padding + thumbnailContainer padding, on both sides */
+    --column-padding: 80px;
+    --column-width: calc(2 * var(--card-width) + var(--card-gap) + var(--column-padding));
+}
+
+@media (min-width: 1200px) {
+    :root {
+        --column-width: calc(3 * var(--card-width) + 2 * var(--card-gap) + var(--column-padding));
+    }
+}
+
 body {
+    /* Centred content column, full height so the edges run top to bottom */
+    max-width: var(--column-width);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 8px 20px;
+    box-sizing: border-box;
     text-align: center;
     font-family: "VT323", monospace;
-    background-color: rgb(255, 173, 250);
+    background-color: rgb(255, 195, 251);
     color: white;
-    /* Black outline around the text, drawn with shadows on every side */
     text-shadow:
         -1px 0 0 black,
          1px 0 0 black,
@@ -21,7 +47,6 @@ body {
 .headerFlamingo {
     height: 100px;
     width: auto;
-    /* Keep the pixel art sharp instead of blurry when scaled */
     image-rendering: pixelated;
 }
 
@@ -29,8 +54,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 20px;
-    max-width: 1200px;
+    gap: var(--card-gap);
     margin: 20px auto 0;
     padding: 10px 20px;
     box-sizing: border-box;
@@ -39,8 +63,7 @@ body {
 .thumbnail {
     display: flex;
     flex-direction: column;
-    /* Fixed card width so a short last row stays centred instead of stretching */
-    flex: 0 1 360px;
+    flex: 0 1 var(--card-width);
 }
 
 .thumbnailImage {
@@ -56,14 +79,13 @@ body {
 }
 
 .link {
-  /* Fixed height with centred content so the icon button and text button match */
   display: inline-flex;
   align-items: center;
   height: 2.5em;
   box-sizing: border-box;
   vertical-align: middle;
   padding: 0 20px;
-  background-color: rgb(253, 99, 184);
+  background-color: rgb(253, 99, 155);
   color: white;
   text-decoration: none;
   text-shadow: none;
