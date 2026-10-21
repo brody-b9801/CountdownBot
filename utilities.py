@@ -19,13 +19,21 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_guild_ts ON events (guild_id, event_ts);
 CREATE TABLE IF NOT EXISTS pings (
     guild_id   INTEGER PRIMARY KEY,
+    channel_id INTEGER NOT NULL,
     ping_time  TEXT NOT NULL,
-    timezone   TEXT NOT NULL
+    timezone   TEXT NOT NULL,
+    last_ping_date TEXT
 );
 """
 
 
 def init_db(conn: sqlite3.Connection) -> None:
+    # CREATE TABLE IF NOT EXISTS won't add columns to an existing table, so rebuild
+    # a pings table from before channel_id existed. Its rows have no channel to ping
+    # anyway, so server owners just rerun /setup-ping.
+    ping_columns = {row[1] for row in conn.execute("PRAGMA table_info(pings)")}
+    if ping_columns and "channel_id" not in ping_columns:
+        conn.execute("DROP TABLE pings")
     conn.executescript(SCHEMA)
     conn.commit()
 

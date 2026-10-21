@@ -1,2 +1,3 @@
 .env
 event_database.db
+__pycache__/
