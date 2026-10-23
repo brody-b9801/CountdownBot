@@ -2,6 +2,8 @@
 
 A Discord bot that counts down the days until events in your server. Anyone can schedule an event with a slash command, and everyone in the server sees the countdown.
 
+The public instance is self-hosted 24/7 on a Raspberry Pi, running as a systemd service (see [Hosting](#hosting)).
+
 **[Add CountdownBot to your server](https://discord.com/oauth2/authorize?client_id=1538941872926494790&permissions=8&integration_type=0&scope=bot)**
 
 ## Commands
@@ -11,6 +13,7 @@ A Discord bot that counts down the days until events in your server. Anyone can 
 | `/schedule` | Opens a form for the event name, month, day, and year, then creates the countdown |
 | `/countdown` | Posts a table of every upcoming event in the server and the days remaining for each |
 | `/delete` | Opens a private menu of the events *you* created so you can pick one to remove |
+| `/setup-ping` | Server owner only: posts the countdown table every day at a chosen time and time zone, in the channel the command was run in |
 
 All commands work only inside a server, not in DMs.
 
@@ -92,6 +95,38 @@ python main.py
 Slash commands are registered with Discord when the bot starts. The database is written to `event_database.db` in the working directory.
 
 > **Timezones:** event dates are stored as midnight in the timezone of the machine running the bot, so run it on a host set to your community's timezone.
+
+## Hosting
+
+The public instance runs on a Raspberry Pi as a systemd service, so it starts on boot and restarts itself if it crashes. A unit file like this one, saved as `/etc/systemd/system/countdownbot.service`, does the job (adjust the user and paths to match your install):
+
+```ini
+[Unit]
+Description=CountdownBot Discord bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/CountdownBot
+ExecStart=/home/pi/CountdownBot/.venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+The bot reads `.env` and writes `event_database.db` in its working directory, so `WorkingDirectory` must point at the repository. Then enable and start it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now countdownbot
+journalctl -u countdownbot -f   # follow the bot's logs
+```
+
+After pulling an update, run `sudo systemctl restart countdownbot`.
 
 ## Tests
 
